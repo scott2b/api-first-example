@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+  <div class="row">
+    <div class="col-md-12">
+      <form method="POST" action="/login?next=/">
+        <fieldset class="input-group vertical">
+        {% with form=form %}
+          {% include "forms/login.html" %}
+        {% endwith %}
+        <input type="submit" value="Login" name="login-form"/>
+        </fieldset>
+      </form>
+    </div>
+   </div>
+
+{% endblock content %}

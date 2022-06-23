@@ -1,0 +1,17 @@
+    <a href="{{ request.url_for('home') }}" class="button">Home</a>
+
+    {% if request.user.is_authenticated %}
+        <a href="{{ request.url_for('apps') }}" class="button">Apps</a>
+    {% endif %}
+
+    {% if request.user.is_authenticated %}
+        <a id="signout-link" href="{{ request.url_for('logout') }}" class="button" alt="signed in as {{ request.user.full_name }}">Sign out 
+          <span class="icon-user"></span></span>
+        </a>
+        {% else %}
+        <a href="{{ request.url_for('login') }}" class="button">Sign in</a>
+    {% endif %}
+
+    <script>
+      tippy("#signout-link", { content: "Signed in as {{ request.user.username }}" });
+    </script>

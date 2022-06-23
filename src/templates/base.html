@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
+
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+
+<link href="/static/site.css" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+
+{# navigation bar fixes required because mini.css menu drawer does not work
+   correctly in a header context #}
+
+<div class="navbar" id="primary-nav">
+  <a href="javascript:void(0);" class="icon" onclick="responsiveNavbar()">
+    <i class="fa fa-bars"></i>
+  </a>
+  {% include "_nav.html" %}
+</div>
+
+<script>
+function responsiveNavbar() {
+  var nav = document.getElementById("primary-nav");
+  if (nav.className === "navbar") {
+      nav.className += " responsive-nav";
+  } else {
+      nav.className = "navbar";
+  }
+}
+</script>
+
+
+<div class="container">
+
+  <div class="row">
+      <div class="col-md-2 left-sidebar"></div>
+
+      <div class="col-md-7">
+          {% include "_messages.html" %}
+          {% block content %}
+          {% endblock content %}
+      </div>
+
+      <div class="col-md-3 right-sidebar"></div>
+  </div>
+
+</div> <!-- .container -->
+
+<footer class="sticky">
+  <p>www.example.com</p>
+</footer>
+
+</body>
+</html>

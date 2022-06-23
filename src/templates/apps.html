@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p>Client ID and secret are used for programmatic access to the API.</p>
+TODO:
+<ul>
+  <li>Enable creating and deleting of client credentials.</li>
+  <li>Hide secrets. Consider hashing them in the database.</li>
+</ul>
+<h3>Application clients</h3>
+
+{% for client in clients %}
+<strong>ID:</strong> {{ client.client_id }}
+<br/>
+<strong>Secret:</strong> {{ client.client_secret }}
+<br/>
+<hr/>
+{% endfor %}
+
+{% endblock content %}

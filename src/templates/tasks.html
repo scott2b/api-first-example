@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div id="task-form">
+    Add a task to your task list:
+    <input type=text id="task-input" placeholder="<Enter> to save">
+</div>
+
+<ul id="task-list">
+</ul>
+
+
+<style>
+[data-done="true"] {
+  text-decoration: line-through;
+}
+</style>
+
+<script>
+
+const taskInput = document.getElementById("task-input");
+const taskList = document.getElementById("task-list");
+
+
+function updateTask(data) {
+    fetch(`http://localhost:5000/tasks/${data.id}`, {
+        method: "put",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json;charset=utf-8"
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        //addTaskToList(data);
+        //taskInput.value = "";
+        console.log(data);
+    })
+}
+
+function addTaskToList(task) {
+    //const description = `<li id=${task.id} data-done=${task.done}>${task.description}</li>`;
+    var li = document.createElement("li");
+    li.id = task.id;
+    li.setAttribute("data-done", task.done);
+    li.appendChild(document.createTextNode(task.description));
+    taskList.appendChild(li);
+    //taskList.innerHTML += description;
+    // li = document.getElementById(task.id);
+    li.onclick = function(e) {
+        var target = e.target;
+        var done = target.getAttribute("data-done");
+        if (done == "false") {
+            done = "true";
+        } else {
+            done = "false";
+        }
+        updateTask({
+            id: target.id,
+            description: target.innerHTML,
+            done: done
+        });
+        target.setAttribute("data-done", done);
+        console.log(target);
+        console.log(target.getAttribute("data-done"));
+    }; 
+}
+
+function loadTasks(data) {
+    //for (const task of data.tasks) {
+    //    addTaskToList(task);
+    //}
+    console.log(data);
+    Object.keys(data["tasks"]).forEach(function(key) {
+        console.log(data["tasks"][key]);
+        addTaskToList(data["tasks"][key]);
+    });
+}
+
+function saveTask(e) {
+    if (e.code !== "Enter") return;
+    const val = taskInput.value;
+    fetch("http://localhost:5000/tasks", {
+        method: "post",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json;charset=utf-8"
+        },
+        body: JSON.stringify({ description: val })
+    })
+    .then(response => response.json())
+    .then(data => {
+        addTaskToList(data);
+        taskInput.value = "";
+    })
+    .catch(error => console.log(error));
+}
+
+taskInput.addEventListener("keydown", saveTask);
+ 
+(function() {
+    fetch("http://localhost:5000/tasks", { credentials: "include" })
+    .then(response => response.json())
+    .then(data => loadTasks(data));
+})();
+</script>
+{% endblock content %}
