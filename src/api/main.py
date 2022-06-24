@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Body
+import datetime
+from fastapi import FastAPI, Body, HTTPException
 from pydantic import BaseModel
 from starlette.authentication import requires
 from starlette.middleware.authentication import AuthenticationMiddleware
@@ -7,7 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
 from common.backends import SessionAuthBackend
 from common.config import settings
-from common.models import OAuth2Client, Task
+from common.models import OAuth2Client, OAuth2Token, Task
 
 
 app = FastAPI(debug=True)
@@ -117,4 +118,16 @@ async def token(form_data: OAuth2ClientTokenRequestForm=Depends()):
     Bearer TOKEN
     ```
     """
-    return await token_machine.create_token(form_data)
+    client = OAuth2Client.get(form_data.client_id)
+    if client is None:
+        raise HTTPException(status_code=401)
+    if client.client_secret != form_data.client_secret: # TODO: secret should probably be hashed
+        raise HTTPException(status_code=401)
+    token = OAuth2Token.create_for_client(client, form_data.grant_type, scope="api")
+    expires = (token.access_token_expires_at - datetime.datetime.utcnow()).seconds
+    return {
+        'access_token': token.access_token,
+        'token_type': 'bearer',
+        'refresh_token': token.refresh_token,
+        'expires_in': expires
+    }

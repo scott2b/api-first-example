@@ -47,7 +47,6 @@ def logout(request):
 
 @requires("app_auth")
 def app_clients(request):
-    print(OAuth2Client.table)
     clients = OAuth2Client.get_for_user(request.user)
     return render("apps.html", { "clients": clients })
 
