@@ -36,13 +36,14 @@ User.table = {
 class Task:
 
     id: str
+    user: User
     description: str
     done: bool = False
 
     @classmethod
-    def create(cls, description):
+    def create(cls, user, description):
         _id = shortuuid.uuid()[:5]
-        task = cls(id=_id, description=description)
+        task = cls(id=_id, user=user, description=description)
         cls.table[_id] = task
         return task
 
@@ -50,6 +51,14 @@ class Task:
     def update(cls, task):
         cls.table[task.id] = task
         return task
+
+    @classmethod
+    def for_user(cls, user):
+        _ = []
+        for task in cls.table.values():
+            if task.user == user:
+                _.append(task)
+        return _
         
 
 Task.table = {}
@@ -114,9 +123,11 @@ class OAuth2Token:
     access_token: str
     refresh_token: str
     access_token_expires_at: datetime.datetime
+    revoked: bool = False
 
     @classmethod
     def create_for_client(cls, client, grant_type, scope="api"):
+        print("CREATING FOR CLIENT", client)
         assert grant_type == "client_credentials" # only client_credentials and api scope currently supported
         assert scope == "api"
         expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=60) # TODO: longer ttl

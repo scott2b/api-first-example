@@ -50,7 +50,7 @@ async def clients(request:Request):
 @app.get("/tasks")
 @requires("api_auth")
 async def get_tasks(request:Request):
-    tasks = Task.table
+    tasks = Task.for_user(request.user)
     return { "tasks": tasks }
 
 
@@ -63,9 +63,9 @@ class NewTask(BaseModel):
 
 
 @app.post("/tasks")
-async def create_task(task:NewTask):
-    task = Task.create(task.description)
-    #Task.table.append(task)
+@requires("api_auth")
+async def create_task(request:Request, task:NewTask):
+    task = Task.create(request.user, task.description)
     return task  # TODO: status 201
 
 
