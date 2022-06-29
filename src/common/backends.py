@@ -33,14 +33,14 @@ class SessionAuthBackend(AuthenticationBackend):
             token = OAuth2Token.access_tokens.get(bearer)
             if token is None:
                 return
-                #raise HTTPException(status_code=403, detail="Invalid token")
+            user = token.client.user
+            if not user.active:
+                return
             if token.access_token_expires_at < datetime.datetime.utcnow():
                 return
-                #raise HTTPException(status_code=403, detail="Expired token")
             if token.revoked:
                 return
-                #raise HTTPException(status_code=403, detail="Invalid token")
             request.scope["token"] = token
-            return AuthCredentials(["api_auth"]), token.client.user
+            return AuthCredentials(["api_auth"]), user
 
 

@@ -54,6 +54,8 @@ async def get_tasks(request:Request):
     return { "tasks": tasks }
 
 
+# TODO: factor into a schema module
+
 class NewTask(BaseModel):
     """Based on these docs: https://fastapi.tiangolo.com/tutorial/body-multiple-params/#singular-values-in-body
     it is expected that we can simply define a description parameter that defaults to Body(),
@@ -68,11 +70,25 @@ class UpdateTask(BaseModel):
     done: bool
 
 
+class ReturnTask(BaseModel):
+
+    id: str
+    user: str
+    description: str
+    done: bool
+
+    @classmethod
+    def from_task(cls, task):
+        d = task.asdict()
+        d["user"] = d["user"]["username"]
+        return cls(**d)
+
+
 @app.post("/tasks")
 @requires("api_auth")
 async def create_task(request:Request, task:NewTask):
     task = Task.create(request.user, task.description)
-    return task  # TODO: status 201
+    return ReturnTask.from_task(task) # TODO: status 201
 
 
 @app.put("/tasks/{task_id}")

@@ -5,7 +5,8 @@
     {% endif %}
 
     {% if request.user.is_authenticated %}
-        <a id="signout-link" href="{{ request.url_for('logout') }}" class="button" alt="signed in as {{ request.user.full_name }}">Sign out 
+        <a href="{{ request.url_for('tasks') }}" class="button" alt="tasks">Tasks</a>
+        <a id="signout-link" href="{{ request.url_for('logout') }}" class="button" alt="signed in as {{ request.user.username }}">Sign out 
           <span class="icon-user"></span></span>
         </a>
         {% else %}

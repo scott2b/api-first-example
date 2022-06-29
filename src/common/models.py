@@ -2,7 +2,7 @@ import datetime
 import dbm
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import shortuuid
 
 
@@ -29,6 +29,8 @@ class User:
 User.table = {
         1: User(id=1, username="ronnie", password="ronnie1"),
         2: User(id=2, username="bobby", password="bobby2"),
+        3: User(id=3, username="ricky", password="ricky3", superuser=True),
+        4: User(id=4, username="mike", password="mike4", active=False)
     }
 
 
@@ -61,6 +63,12 @@ class Task:
             if task.user == user:
                 _.append(task)
         return _
+
+    def asdict(self):
+        """Super annoying that Python dataclasses make this a module function instead
+        of an object method.
+        """
+        return asdict(self)
         
 
 Task.table = {}

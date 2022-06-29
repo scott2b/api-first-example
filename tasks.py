@@ -161,15 +161,19 @@ app = typer.Typer()
 def list():
     """List tasks."""
     r = client.get("/tasks")
-    for i, task in enumerate(r.json()["tasks"], start=1):
-        done = "☑" if task["done"] else "☐"
-        print(done, f"{i}.", task["description"])
+    if r.status_code == 200:
+        for i, task in enumerate(r.json()["tasks"], start=1):
+            done = "☑" if task["done"] else "☐"
+            print(done, f"{i}.", task["description"])
+    else:
+        print(r.json())
 
 
 @app.command()
 def new(description: str):
     """Create a new task."""
     r = client.post("/tasks", { "description": description })
+    print(r.json())
 
 
 @app.command()
@@ -184,6 +188,7 @@ def do(number: int):
         return
     task["done"] = True
     r = client.put(f"/tasks/{task['id']}", task)
+    print(r.json())
     
 
 @app.command()
@@ -198,6 +203,7 @@ def undo(number: int):
         return
     task["done"] = False
     r = client.put(f"/tasks/{task['id']}", task)
+    print(r.json())
     
     
     
