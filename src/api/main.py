@@ -92,7 +92,8 @@ async def create_task(request:Request, task:NewTask):
 
 
 @app.put("/tasks/{task_id}")
-async def update_task(task_id:str, task:UpdateTask):
+@requires("api_auth")
+async def update_task(request:Request, task_id:str, task:UpdateTask):
     Task.update(task)
     return task
 
