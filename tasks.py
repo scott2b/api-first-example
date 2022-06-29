@@ -132,12 +132,21 @@ class APIClient:
         logger.debug(f"POSTing URL {url}")
         try:
             resp = self.client.post(url, json=data)
-            print(resp)
             return resp
         except (oauthlib.oauth2.rfc6749.errors.MissingTokenError, MissingToken):
             self.reset()
             resp = self.client.post(url, json=data)
-            print(resp)
+            return resp
+
+    def put(self, path:str, data:dict) -> requests.Response:
+        url = f"{self.API_ROOT}{path}"
+        logger.debug(f"PUTing URL {url}")
+        try:
+            resp = self.client.put(url, json=data)
+            return resp
+        except (oauthlib.oauth2.rfc6749.errors.MissingTokenError, MissingToken):
+            self.reset()
+            resp = self.client.post(url, json=data)
             return resp
 
 ### CLI app
@@ -149,17 +158,33 @@ app = typer.Typer()
 
 
 @app.command()
-def tasks():
+def list():
+    """List tasks."""
     r = client.get("/tasks")
-    for task in r.json()["tasks"]:
+    for i, task in enumerate(r.json()["tasks"], start=1):
         done = "☑" if task["done"] else "☐"
-        print(done, task["description"])
+        print(done, f"{i}.", task["description"])
 
 
 @app.command()
-def create():
+def new(description: str):
+    """Create a new task."""
+    r = client.post("/tasks", { "description": description })
+
+
+@app.command()
+def do(number: int):
+    """Mark a task as done."""
     r = client.get("/tasks")
-    print(r.json())
+    tasks = { i:task for i, task in enumerate(r.json()["tasks"], start=1) }
+    try:
+        task = tasks[number]
+    except KeyError:
+        print(f"Task #{number} does not exist.")
+        return
+    task["done"] = True
+    r = client.put(f"/tasks/{task['id']}", task)
+    
     
 
 if __name__=="__main__":
