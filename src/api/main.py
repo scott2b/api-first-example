@@ -62,6 +62,12 @@ class NewTask(BaseModel):
     description: str
 
 
+class UpdateTask(BaseModel):
+    id: str
+    description: str
+    done: bool
+
+
 @app.post("/tasks")
 @requires("api_auth")
 async def create_task(request:Request, task:NewTask):
@@ -70,7 +76,7 @@ async def create_task(request:Request, task:NewTask):
 
 
 @app.put("/tasks/{task_id}")
-async def update_task(task_id:str, task:Task):
+async def update_task(task_id:str, task:UpdateTask):
     Task.update(task)
     return task
 

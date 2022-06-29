@@ -8,6 +8,7 @@ import urllib
 import urllib.parse
 import oauthlib
 import requests
+import typer
 from pathlib import Path
 from cryptography.fernet import Fernet
 from requests_oauthlib import OAuth2Session
@@ -18,6 +19,7 @@ from oauthlib.oauth2.rfc6749.errors import MissingTokenError
 logger = logging.getLogger("apifirstexample")
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
+
 
 
 class InvalidRequest(Exception):
@@ -120,19 +122,46 @@ class APIClient:
             url = f"{url}?{querystr}"
         logger.debug(f"GETing URL {url}")
         try:
-            resp = self.client.get(url)
+            return self.client.get(url)
+        except (oauthlib.oauth2.rfc6749.errors.MissingTokenError, MissingToken):
+            self.reset()
+            return self.client.get(url)
+
+    def post(self, path:str, data:dict) -> requests.Response:
+        url = f"{self.API_ROOT}{path}"
+        logger.debug(f"POSTing URL {url}")
+        try:
+            resp = self.client.post(url, json=data)
             print(resp)
             return resp
         except (oauthlib.oauth2.rfc6749.errors.MissingTokenError, MissingToken):
             self.reset()
-            resp = self.client.get(url)
+            resp = self.client.post(url, json=data)
             print(resp)
             return resp
 
+### CLI app
 
-if __name__=="__main__":
-    client_id = os.environ["CLIENT_ID"]
-    client_secret = os.environ["CLIENT_SECRET"]
-    client = APIClient(client_id, client_secret)
+client_id = os.environ["CLIENT_ID"]
+client_secret = os.environ["CLIENT_SECRET"]
+client = APIClient(client_id, client_secret)
+app = typer.Typer()
+
+
+@app.command()
+def tasks():
+    r = client.get("/tasks")
+    for task in r.json()["tasks"]:
+        done = "☑" if task["done"] else "☐"
+        print(done, task["description"])
+
+
+@app.command()
+def create():
     r = client.get("/tasks")
     print(r.json())
+    
+
+if __name__=="__main__":
+    #r = client.post("/tasks", { "description": "do this" } )
+    app()

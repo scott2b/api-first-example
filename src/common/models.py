@@ -49,8 +49,10 @@ class Task:
 
     @classmethod
     def update(cls, task):
-        cls.table[task.id] = task
-        return task
+        _task = cls.table[task.id]
+        _task.__dict__.update(task.dict())
+        cls.table[task.id] = _task
+        return _task
 
     @classmethod
     def for_user(cls, user):
