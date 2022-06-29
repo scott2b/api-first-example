@@ -185,6 +185,21 @@ def do(number: int):
     task["done"] = True
     r = client.put(f"/tasks/{task['id']}", task)
     
+
+@app.command()
+def undo(number: int):
+    """Mark a task as not done."""
+    r = client.get("/tasks")
+    tasks = { i:task for i, task in enumerate(r.json()["tasks"], start=1) }
+    try:
+        task = tasks[number]
+    except KeyError:
+        print(f"Task #{number} does not exist.")
+        return
+    task["done"] = False
+    r = client.put(f"/tasks/{task['id']}", task)
+    
+    
     
 
 if __name__=="__main__":
