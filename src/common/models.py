@@ -2,8 +2,9 @@ import datetime
 import dbm
 import json
 import os
-from dataclasses import dataclass, asdict
 import shortuuid
+from dataclasses import dataclass, asdict
+from common.config import settings
 
 
 @dataclass
@@ -49,12 +50,9 @@ class Task:
         cls.table[_id] = task
         return task
 
-    @classmethod
-    def update(cls, task):
-        _task = cls.table[task.id]
-        _task.__dict__.update(task.dict())
-        cls.table[task.id] = _task
-        return _task
+    def update(self, **data):
+        self.__dict__.update(data)
+        return self
 
     @classmethod
     def for_user(cls, user):
@@ -121,7 +119,6 @@ if not os.path.exists("client_credentials"):
                 "client_id": secrets.token_urlsafe(32),
                 "client_secret": secrets.token_urlsafe(32)
             }
-            print(data)
             db[data["client_id"]] = json.dumps(data)
 
 
@@ -135,12 +132,11 @@ class OAuth2Token:
     access_token_expires_at: datetime.datetime
     revoked: bool = False
 
+
     @classmethod
-    def create_for_client(cls, client, grant_type, scope="api"):
-        print("CREATING FOR CLIENT", client)
-        assert grant_type == "client_credentials" # only client_credentials and api scope currently supported
-        assert scope == "api"
-        expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=60) # TODO: longer ttl
+    def _create(cls, client):
+        expires = datetime.datetime.utcnow() + \
+            datetime.timedelta(seconds=settings.ACCESS_TOKEN_TIMEOUT_SECONDS)
         token = cls(
             client=client,
             access_token=secrets.token_urlsafe(32),
@@ -151,6 +147,23 @@ class OAuth2Token:
         cls.refresh_tokens[token.refresh_token] = token
         return token
 
+    @classmethod
+    def create_for_client(cls, client, grant_type, scope="api"):
+        assert grant_type == "client_credentials" # only client_credentials and api scope currently supported
+        assert scope == "api"
+        return cls._create(client)
+
+    @classmethod
+    def refresh(cls, refresh_token):
+        """See:
+        https://requests-oauthlib.readthedocs.io/en/latest/oauth2_workflow.html#refreshing-tokens
+        """
+        obj = cls.refresh_tokens[refresh_token] 
+        client = obj.client
+        del cls.access_tokens[obj.access_token]
+        del cls.refresh_tokens[refresh_token]
+        return cls._create(client)
+         
 
 OAuth2Token.access_tokens = {}
 OAuth2Token.refresh_tokens = {}

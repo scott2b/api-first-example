@@ -204,6 +204,14 @@ def undo(number: int):
     task["done"] = False
     r = client.put(f"/tasks/{task['id']}", task)
     print(r.json())
+
+
+@app.command()
+def reset():
+    """Clear out the existing access token. Normally should not be needed, but can
+    be useful for development if the access tokens are not stable on the server.
+    """
+    client.reset()
     
     
     

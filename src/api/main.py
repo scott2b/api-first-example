@@ -10,15 +10,14 @@ from common.backends import SessionAuthBackend
 from common.config import settings
 from common.models import OAuth2Client, OAuth2Token, Task
 from .forms import OAuth2ClientTokenRequestForm, OAuth2ClientRefreshTokenRequestForm
-from .validation import Message, NewTask, UpdateTask, ReturnTask
+from .validation import Message, OAuth2TokenResponse, TaskCreate, TaskUpdate, TaskResponse, TaskList
 
 
 app = FastAPI(debug=True)
 
 app.add_middleware(
             CORSMiddleware,
-            allow_origins=["http://localhost:8000"],
-            #    str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+            allow_origins=settings.CORS_ORIGINS,
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
@@ -83,39 +82,40 @@ async def clients(request:Request):
     return { clients: clients }
 
 
-@app.get("/tasks")
+@app.get("/tasks", response_model=TaskList)
 @requires("api_auth")
 async def get_tasks(request:Request):
     """Get the list of tasks. Returns all tasks for the user associated with the
     client credentials, or the currently authenticated user in the UI.
     """
-    tasks = Task.for_user(request.user)
-    return { "tasks": tasks }
+    return { "tasks": Task.for_user(request.user) }
 
 
-@app.post("/tasks", response_model=ReturnTask, status_code=201)
+@app.post("/tasks",
+    response_model=TaskResponse,
+    status_code=201)
 @requires("api_auth")
-async def create_task(request:Request, task:NewTask):
+async def create_task(request:Request, task:TaskCreate):
     """Create a new task."""
-    task = Task.create(request.user, task.description)
-    return ReturnTask.from_task(task)
+    return Task.create(request.user, task.description)
 
 
 @app.put("/tasks/{task_id}",
-    response_model=ReturnTask,
+    response_model=TaskResponse,
     responses={404: {"model": Message, "description": "The item was not found"}})
 @requires("api_auth")
-async def update_task(request:Request, task_id:str, task:UpdateTask):
+async def update_task(request:Request, task_id:str, data:TaskUpdate):
     """Update the given tasks. Only superusers may update other users' tasks."""
-    orig = Task.table[task_id]
-    if orig.user == request.user or request.user.superuser:
-        Task.update(task)
-        return ReturnTask.from_task(task)
+    task = Task.table.get(task_id)
+    if task is None:
+        raise HTTPException(status_code=404)
+    if task.user == request.user or request.user.superuser:
+        return task.update(**data.dict())
     else:
         raise HTTPException(status_code=404)
 
     
-@app.post("/token")
+@app.post("/token", response_model=OAuth2TokenResponse)
 async def token(form_data: OAuth2ClientTokenRequestForm=Depends()):
     """Get new OAuth token
     Fetches a new authorization token for the client. Request should be posted as
@@ -130,6 +130,10 @@ async def token(form_data: OAuth2ClientTokenRequestForm=Depends()):
     ```
     Bearer TOKEN
     ```
+
+    Due to ephemeral persistence of tokens in this implementation, you may see 403
+    errors, e.g. if the application is restarted. Deleting the client's .key file
+    should fix this (or run the command `tasks.py reset`).
     """
     client = OAuth2Client.get(form_data.client_id)
     if client is None:
@@ -138,9 +142,35 @@ async def token(form_data: OAuth2ClientTokenRequestForm=Depends()):
         raise HTTPException(status_code=401)
     token = OAuth2Token.create_for_client(client, form_data.grant_type, scope="api")
     expires = (token.access_token_expires_at - datetime.datetime.utcnow()).seconds
-    return {
-        'access_token': token.access_token,
-        'token_type': 'bearer',
-        'refresh_token': token.refresh_token,
-        'expires_in': expires
-    }
+    return OAuth2TokenResponse(
+        access_token=token.access_token,
+        refresh_token=token.refresh_token,
+        expires_in=expires
+    )
+
+
+@app.post("/token-refresh", response_model=OAuth2TokenResponse)
+async def refresh_token(form_data: OAuth2ClientRefreshTokenRequestForm=Depends()):
+    """Refresh OAuth token. Should be posted as form data with the fields:
+     * grant_type (must be set to "refresh_token")d
+     * refresh_token (the refresh token of your active credentials)
+
+    Due to ephemeral storage of tokens in this implementation, you may get a KeyError,
+    e.g. if the application is restarted. This is analagous to a refresh token being
+    revoked with client credentials left intact, thus clients should simply retry with
+    the original ID/secret credentials.
+
+    As far as I can tell, providing a refresh endpoint is optional, and primarily
+    serves the purpose of avoiding passing the primary credentials around any more
+    than necessary.
+
+    As implemented, refresh tokens do not expire. It is not clear to me if there is
+    a concept of refresh-token timeout in the spec.
+    """ 
+    token = OAuth2Token.refresh(form_data.refresh_token)
+    expires = (token.access_token_expires_at - datetime.datetime.utcnow()).seconds
+    return OAuth2TokenResponse(
+        access_token=token.access_token,
+        refresh_token=token.refresh_token,
+        expires_in=expires
+    )
