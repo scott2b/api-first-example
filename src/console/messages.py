@@ -18,28 +18,27 @@ def clear_messages(request, key=None):
     message list.
     """
     if key:
-        key = f'messages__{key}'
+        key = f"messages__{key}"
     else:
-        key = 'messages'
-    request.session[key]= []
-    return ''
+        key = "messages"
+    request.session[key] = []
+    return ""
 
 
-def add_message(request, message, key:str=None, classes:List[str]=None):
+def add_message(request, message, key: str = None, classes: List[str] = None):
     """Add a message to the session messages list."""
     if key:
-        key = f'messages__{key}'
+        key = f"messages__{key}"
     else:
-        key = 'messages'
+        key = "messages"
     if not key in request.session:
         request.session[key] = []
-    msg = { 'text': message }
+    msg = {"text": message}
     if classes:
-        msg['class'] = ' '.join(classes)
+        msg["class"] = " ".join(classes)
     request.session[key].append(msg)
 
 
 def add(*args, **kwargs):
     """An alias for add_message."""
     return add_message(*args, **kwargs)
-

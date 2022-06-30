@@ -13,34 +13,29 @@ from .messages import clear_messages
 class Templates(Jinja2Templates):
     """Custom Template handler."""
 
-    def TemplateResponse(
-        self,
-        name: str,
-        context: dict,
-        **kwargs
-    ):
+    def TemplateResponse(self, name: str, context: dict, **kwargs):
         """Render a template response.
 
         If it exists and is not already set in the context, injects the
         request object from the calling scope into the template context.
 
         Adds a clear_request method to the request instance.
-        """ 
-        if 'request' in context:
-            req = context['request']
+        """
+        if "request" in context:
+            req = context["request"]
             if isinstance(req, Request):
                 req.clear_messages = types.MethodType(clear_messages, req)
         else:
             frame = inspect.currentframe()
             try:
                 _locals = frame.f_back.f_locals
-                req = _locals.get('request')
+                req = _locals.get("request")
                 if req is not None and isinstance(req, Request):
-                    context['request'] = req
+                    context["request"] = req
                     req.clear_messages = types.MethodType(clear_messages, req)
             finally:
                 del frame
         return super().TemplateResponse(name, context, **kwargs)
-    
-render = Templates(directory='templates').TemplateResponse
 
+
+render = Templates(directory="templates").TemplateResponse

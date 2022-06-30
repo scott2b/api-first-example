@@ -15,6 +15,7 @@ class CSRFForm(Form):
     used in order to handle CSRF in middleware and to make it consistent with the way
     ajax CSRF is handled in the API.
     """
+
     csrftoken = HiddenField(name="csrftoken")
 
     def __init__(self, *args, **kwargs):
@@ -27,7 +28,7 @@ class CSRFForm(Form):
             )
 
 
-#class TokenForm(CSRFForm):
+# class TokenForm(CSRFForm):
 #
 #    def __init__(self, request, *args, **kwargs):
 #        self.request = request
@@ -35,8 +36,8 @@ class CSRFForm(Form):
 
 
 class LoginForm(CSRFForm):
-    username = StringField('Username')
-    password = PasswordField('Password')
+    username = StringField("Username")
+    password = PasswordField("Password")
 
     def __init__(self, request, *args, **kwargs):
         self.request = request
@@ -46,13 +47,14 @@ class LoginForm(CSRFForm):
     def validate_password(form, field):
         _user = User.get_by_username(form.username.data)
         if _user is None:
-            raise validators.ValidationError('Incorrect username or password')
+            raise validators.ValidationError("Incorrect username or password")
         elif not _user.active:
             raise validators.ValidationError(
-                'This account has been administratively deactivated. '\
-                'Please contact technical support.')
+                "This account has been administratively deactivated. "
+                "Please contact technical support."
+            )
         form.user = _user
 
     def validate(self):
         super().validate()
-        return self.user   
+        return self.user

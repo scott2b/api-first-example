@@ -8,24 +8,24 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from .models import User, OAuth2Token
 
 
-#from cryptography.fernet import Fernet
-#from common.config import settings
+# from cryptography.fernet import Fernet
+# from common.config import settings
 
-#csrf_secret = settings.CSRF_KEY
+# csrf_secret = settings.CSRF_KEY
 
-#def fernet(key: str) -> Fernet:
+# def fernet(key: str) -> Fernet:
 #    key = key + "=" * (len(key) % 4)
 #    _key = base64.urlsafe_b64encode(base64.urlsafe_b64decode(key))
 #    return Fernet(_key)
 #
-#def encrypt(data: str) -> bytes:
+# def encrypt(data: str) -> bytes:
 #    return fernet(csrf_secret).encrypt(data.encode())
 #
-#def decrypt(data: bytes) -> bytes:
+# def decrypt(data: bytes) -> bytes:
 #    return fernet(csrf_secret).decrypt(data)
 
 
-#class CSRFMiddleware(BaseHTTPMiddleware):
+# class CSRFMiddleware(BaseHTTPMiddleware):
 #
 #    async def dispatch(self, request, call_next):
 #        """I have modeled this after Django's approach of putting the CSRF token in the
@@ -58,12 +58,11 @@ from .models import User, OAuth2Token
 
 
 class SessionAuthBackend(AuthenticationBackend):
-
     async def authenticate(self, request):
         if "user_id" in request.session:
             user_id = request.session["user_id"]
             user = User.table[user_id]
-            if user is None: # something is wrong with the session data
+            if user is None:  # something is wrong with the session data
                 del request.session["user_id"]
                 if "username" in request.session:
                     del request.session["username"]
@@ -89,4 +88,3 @@ class SessionAuthBackend(AuthenticationBackend):
                 return
             request.scope["token"] = token
             return AuthCredentials(["api_auth"]), user
-

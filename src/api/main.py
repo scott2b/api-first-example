@@ -10,18 +10,25 @@ from common.backends import SessionAuthBackend
 from common.config import settings
 from common.models import OAuth2Client, OAuth2Token, Task
 from .forms import OAuth2ClientTokenRequestForm, OAuth2ClientRefreshTokenRequestForm
-from .validation import Message, OAuth2TokenResponse, TaskCreate, TaskUpdate, TaskResponse, TaskList
+from .validation import (
+    Message,
+    OAuth2TokenResponse,
+    TaskCreate,
+    TaskUpdate,
+    TaskResponse,
+    TaskList,
+)
 
 
 app = FastAPI(debug=True)
 
 app.add_middleware(
-            CORSMiddleware,
-            allow_origins=settings.CORS_ORIGINS,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def bypass_csrf(scope):
@@ -33,19 +40,17 @@ def bypass_csrf(scope):
     this bypass in deployment.
     """
     return settings.BYPASS_API_CSRF
-    
+
 
 app.add_middleware(
-    asgi_csrf, # Thanks @simonw!
+    asgi_csrf,  # Thanks @simonw!
     signing_secret=settings.CSRF_KEY,
     always_set_cookie=True,
-    skip_if_scope=bypass_csrf
+    skip_if_scope=bypass_csrf,
 )
 
 
-app.add_middleware(
-    AuthenticationMiddleware,
-    backend=SessionAuthBackend())
+app.add_middleware(AuthenticationMiddleware, backend=SessionAuthBackend())
 
 
 app.add_middleware(
@@ -54,23 +59,21 @@ app.add_middleware(
     session_cookie=settings.SESSION_COOKIE,
     max_age=settings.SESSION_EXPIRE_SECONDS,
     same_site=settings.SESSION_SAME_SITE,
-    https_only=False)
+    https_only=False,
+)
 
 
 @app.get("/", include_in_schema=False)
 async def home():
     return {
         "description": "api-first example application",
-        "documentation": {
-            "swagger": "/docs",
-            "redoc": "/redoc"
-        }
+        "documentation": {"swagger": "/docs", "redoc": "/redoc"},
     }
 
 
 @app.get("/clients", include_in_schema=False)
-@requires("app_auth") # Note the app_auth scope on this one
-async def clients(request:Request):
+@requires("app_auth")  # Note the app_auth scope on this one
+async def clients(request: Request):
     """This is not currently used but is exposed for the sake of potentially fetching
     the client credentials via ajax rather than in the console view code.
 
@@ -79,32 +82,32 @@ async def clients(request:Request):
     removed this from the docs.
     """
     clients = OAuth2Client.get_for_user(request.user)
-    return { clients: clients }
+    return {clients: clients}
 
 
 @app.get("/tasks", response_model=TaskList)
 @requires("api_auth")
-async def get_tasks(request:Request):
+async def get_tasks(request: Request):
     """Get the list of tasks. Returns all tasks for the user associated with the
     client credentials, or the currently authenticated user in the UI.
     """
-    return { "tasks": Task.for_user(request.user) }
+    return {"tasks": Task.for_user(request.user)}
 
 
-@app.post("/tasks",
-    response_model=TaskResponse,
-    status_code=201)
+@app.post("/tasks", response_model=TaskResponse, status_code=201)
 @requires("api_auth")
-async def create_task(request:Request, task:TaskCreate):
+async def create_task(request: Request, task: TaskCreate):
     """Create a new task."""
     return Task.create(request.user, task.description)
 
 
-@app.put("/tasks/{task_id}",
+@app.put(
+    "/tasks/{task_id}",
     response_model=TaskResponse,
-    responses={404: {"model": Message, "description": "The item was not found"}})
+    responses={404: {"model": Message, "description": "The item was not found"}},
+)
 @requires("api_auth")
-async def update_task(request:Request, task_id:str, data:TaskUpdate):
+async def update_task(request: Request, task_id: str, data: TaskUpdate):
     """Update the given tasks. Only superusers may update other users' tasks."""
     task = Task.table.get(task_id)
     if task is None:
@@ -114,9 +117,9 @@ async def update_task(request:Request, task_id:str, data:TaskUpdate):
     else:
         raise HTTPException(status_code=404)
 
-    
+
 @app.post("/token", response_model=OAuth2TokenResponse)
-async def token(form_data: OAuth2ClientTokenRequestForm=Depends()):
+async def token(form_data: OAuth2ClientTokenRequestForm = Depends()):
     """Get new OAuth token
     Fetches a new authorization token for the client. Request should be posted as
     form data with the fields:
@@ -138,19 +141,21 @@ async def token(form_data: OAuth2ClientTokenRequestForm=Depends()):
     client = OAuth2Client.get(form_data.client_id)
     if client is None:
         raise HTTPException(status_code=401)
-    if client.client_secret != form_data.client_secret: # TODO: secret should probably be hashed
+    if (
+        client.client_secret != form_data.client_secret
+    ):  # TODO: secret should probably be hashed
         raise HTTPException(status_code=401)
     token = OAuth2Token.create_for_client(client, form_data.grant_type, scope="api")
     expires = (token.access_token_expires_at - datetime.datetime.utcnow()).seconds
     return OAuth2TokenResponse(
         access_token=token.access_token,
         refresh_token=token.refresh_token,
-        expires_in=expires
+        expires_in=expires,
     )
 
 
 @app.post("/token-refresh", response_model=OAuth2TokenResponse)
-async def refresh_token(form_data: OAuth2ClientRefreshTokenRequestForm=Depends()):
+async def refresh_token(form_data: OAuth2ClientRefreshTokenRequestForm = Depends()):
     """Refresh OAuth token. Should be posted as form data with the fields:
      * grant_type (must be set to "refresh_token")d
      * refresh_token (the refresh token of your active credentials)
@@ -166,11 +171,11 @@ async def refresh_token(form_data: OAuth2ClientRefreshTokenRequestForm=Depends()
 
     As implemented, refresh tokens do not expire. It is not clear to me if there is
     a concept of refresh-token timeout in the spec.
-    """ 
+    """
     token = OAuth2Token.refresh(form_data.refresh_token)
     expires = (token.access_token_expires_at - datetime.datetime.utcnow()).seconds
     return OAuth2TokenResponse(
         access_token=token.access_token,
         refresh_token=token.refresh_token,
-        expires_in=expires
+        expires_in=expires,
     )

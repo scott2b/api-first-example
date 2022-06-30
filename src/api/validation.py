@@ -18,6 +18,7 @@ class TaskCreate(BaseModel):
     Body(), however this does not seem to work always resulting in a 422 validation
     error, so we provide an input Task validator without an id.
     """
+
     description: str
 
 
