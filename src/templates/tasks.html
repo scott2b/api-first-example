@@ -2,6 +2,8 @@
 
 {% block content %}
 
+<span id="csrf-token" data-token="{{ request.scope.csrftoken }}" />
+
 <div id="task-form">
     Add a task to your task list:
     <input type=text id="task-input" placeholder="<Enter> to save">
@@ -23,12 +25,20 @@ const taskInput = document.getElementById("task-input");
 const taskList = document.getElementById("task-list");
 
 
+function csrfToken() {
+    const el = document.getElementById("csrf-token");
+    const token = el.getAttribute("data-token");
+    return token;
+}
+
+
 function updateTask(data) {
     fetch(`http://localhost:5000/tasks/${data.id}`, {
         method: "put",
         credentials: "include",
         headers: {
-            "Content-Type": "application/json;charset=utf-8"
+            "Content-Type": "application/json;charset=utf-8",
+            "x-csrftoken": "{{ request.scope.csrftoken() }}"
         },
         body: JSON.stringify(data)
     })
@@ -86,7 +96,8 @@ function saveTask(e) {
         method: "post",
         credentials: "include",
         headers: {
-            "Content-Type": "application/json;charset=utf-8"
+            "Content-Type": "application/json;charset=utf-8",
+            "x-csrftoken": "{{ request.scope.csrftoken() }}"
         },
         body: JSON.stringify({ description: val })
     })

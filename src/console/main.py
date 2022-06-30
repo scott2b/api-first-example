@@ -1,3 +1,6 @@
+import base64
+from asgi_csrf import asgi_csrf
+from cryptography.fernet import Fernet
 from starlette.applications import Starlette
 from starlette.authentication import requires
 from starlette.middleware.authentication import AuthenticationMiddleware
@@ -8,10 +11,9 @@ from starlette.routing import Route, Mount
 from common.backends import SessionAuthBackend
 from common.config import settings
 from common.models import OAuth2Client
-from .forms import LoginForm
+from .forms import TokenForm, LoginForm
 from .templating import render
 from . import messages
-
 
 
 async def homepage(request:Request):
@@ -52,6 +54,10 @@ def app_clients(request):
 
 @requires("app_auth")
 def tasks(request):
+    #csrf_token = encrypt(str(request.user.id)).decode()
+    #print("CSRF TOKEN in view:", csrf_token)
+    #return render("tasks.html", { "csrf_token": csrf_token })
+    print(request.scope)
     return render("tasks.html", {})
 
 
@@ -68,9 +74,13 @@ app = Starlette(
     routes=routes
 )
 
+app.add_middleware(asgi_csrf, signing_secret=settings.CSRF_KEY, always_set_cookie=True)
+
+
 app.add_middleware(
     AuthenticationMiddleware,
     backend=SessionAuthBackend())
+
 
 app.add_middleware(
     SessionMiddleware,
@@ -79,3 +89,4 @@ app.add_middleware(
     max_age=settings.SESSION_EXPIRE_SECONDS,
     same_site=settings.SESSION_SAME_SITE,
     https_only=False)
+

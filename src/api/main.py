@@ -1,4 +1,5 @@
 import datetime
+from asgi_csrf import asgi_csrf
 from fastapi import FastAPI, Body, HTTPException
 from pydantic import BaseModel
 from starlette.authentication import requires
@@ -6,7 +7,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
-from common.backends import SessionAuthBackend
+from common.backends import CSRFMiddleware, SessionAuthBackend
 from common.config import settings
 from common.models import OAuth2Client, OAuth2Token, Task
 
@@ -22,9 +23,25 @@ app.add_middleware(
             allow_headers=["*"],
         )
 
+
+def bypass_csrf(scope):
+    """Used only for development. In order to enable interactive Swagger docs, set
+    the BYPASS_API_CSRF configuration setting to True. This can be done by setting the
+    BYPASS_API_CSRF environment variable.
+
+    Because this disables CSRF protection on API calls, it is not recommended to allow
+    this bypass in deployment.
+    """
+    return settings.BYPASS_API_CSRF
+    
+
+app.add_middleware(asgi_csrf, signing_secret=settings.CSRF_KEY, always_set_cookie=True, skip_if_scope=bypass_csrf)
+
+
 app.add_middleware(
     AuthenticationMiddleware,
     backend=SessionAuthBackend())
+
 
 app.add_middleware(
     SessionMiddleware,
@@ -87,6 +104,7 @@ class ReturnTask(BaseModel):
 @app.post("/tasks")
 @requires("api_auth")
 async def create_task(request:Request, task:NewTask):
+    print("CREATING TASK IN API")
     task = Task.create(request.user, task.description)
     return ReturnTask.from_task(task) # TODO: status 201
 
@@ -94,8 +112,12 @@ async def create_task(request:Request, task:NewTask):
 @app.put("/tasks/{task_id}")
 @requires("api_auth")
 async def update_task(request:Request, task_id:str, task:UpdateTask):
-    Task.update(task)
-    return task
+    orig = Task.table[task_id]
+    if orig.user == request.user or request.user.superuser:
+        Task.update(task)
+        return task
+    else:
+        raise HTTPException(status_code=404)
 
 
 from fastapi import Form, Depends

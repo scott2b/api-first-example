@@ -1,5 +1,8 @@
 # insecure transport needed for http development. In deployment, use https
 OAUTHLIB_INSECURE_TRANSPORT=1
 
+# bypassing csrf should only be done in development
+BYPASS_API_CSRF=1
+
 CLIENT_ID=get this from the UI
 CLIENT_SECRET=get this from the UI

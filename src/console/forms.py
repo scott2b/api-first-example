@@ -20,6 +20,13 @@ class CSRFForm(Form):
         return valid
 
 
+class TokenForm(CSRFForm):
+
+    def __init__(self, request, *args, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+
+
 class LoginForm(CSRFForm):
     username = StringField('Username')
     password = PasswordField('Password')

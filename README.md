@@ -56,11 +56,13 @@ Scopes are then applied as follows:
 Finally, requests made via Javascript from the browser pass their cookie information.
 This allows the browser to programatically access the API.
 
+
 ## Architectural notes
 
 Both applications will need access to the same database, particularly the ouath client
 and tokens tables. It is likely they will also both need access to users, or whatever
 your resource-owning model is.
+
 
 ## Implementation notes
 
@@ -69,7 +71,15 @@ that for the most part things are held in memory and will tend to be cleared out
 application is restarted. Although for developing convenience I am currently saving
 client credentials via dbm.
 
+
 ## Programmatic Client
 
 A CLI called tasks.py is provided to demonstrate API access. Use the client ID and
 secret available in the /apps section of the UI for a user.
+
+
+## Interactive Swagger docs
+
+The FastAPI Swagger UI is available at http://localhost:5000/docs. You will first
+need to authenticate in the web app (http://localhost:8000/login) in order to submit
+auth-required requests via Swagger.

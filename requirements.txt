@@ -1,3 +1,5 @@
+asgi-csrf==0.9
+cryptography==37.0.2
 fastapi==0.78.0
 itsdangerous==2.1.2 # required for Starlette's session middleware
 Jinja2==3.1.2
