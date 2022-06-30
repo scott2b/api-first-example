@@ -1,13 +1,11 @@
-import base64
 from asgi_csrf import asgi_csrf
-from cryptography.fernet import Fernet
 from starlette.applications import Starlette
 from starlette.authentication import requires
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import RedirectResponse
 from starlette.requests import Request
-from starlette.routing import Route, Mount
+from starlette.routing import Route
 from common.backends import SessionAuthBackend
 from common.config import settings
 from common.models import OAuth2Client
@@ -59,10 +57,6 @@ def app_clients(request):
 
 @requires("app_auth")
 def tasks(request):
-    # csrf_token = encrypt(str(request.user.id)).decode()
-    # print("CSRF TOKEN in view:", csrf_token)
-    # return render("tasks.html", { "csrf_token": csrf_token })
-    print(request.scope)
     return render("tasks.html", {})
 
 
