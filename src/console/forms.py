@@ -1,4 +1,3 @@
-from datetime import timedelta
 from wtforms import Form, StringField, validators, PasswordField, HiddenField
 from common.models import User
 
@@ -26,13 +25,6 @@ class CSRFForm(Form):
             raise NotImplementedError(
                 "Subclasses of CSRFForm must have a request property with scope containing csrftoken."
             )
-
-
-# class TokenForm(CSRFForm):
-#
-#    def __init__(self, request, *args, **kwargs):
-#        self.request = request
-#        super().__init__(*args, **kwargs)
 
 
 class LoginForm(CSRFForm):
