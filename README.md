@@ -1,6 +1,25 @@
 # api-first-example
 Reference example of API-first web application design
 
+This project aims to demonstrate the idea of separation of a web-UI application from
+an API backend where the API is accessible both to users authenticated in the UI, and
+to programmatic clients via a client ID/secret credentials set.
+
+The application itself is a super-simple "tasks" project, typical for framework
+demos and proofs of concept.
+
+
+## Quickstart
+
+```
+docker-compose up
+```
+
+ * [User interface](http://localhost:8000)
+ * [API](http://localhost:5000)
+ * [Swagger interactive docs](http://localhost:5000/docs)
+ * [Redoc API docs](http://localhost:5000/redoc)
+
 
 ## About
 
@@ -25,7 +44,7 @@ The chosen solution uses the following approach:
    and validation features.
  * The web UI is built with Starlette for its simplicity.
  * Both applications use the same shared authorization backend, which uses Starlette
-   middleware to assign authorization scopes as follows:
+   middleware for session management and to assign authorization scopes as follows:
 
      - Client credentials requests utilize a bearer scheme and attaches api_auth to
        the scope.
@@ -36,9 +55,10 @@ The chosen solution uses the following approach:
        API.
 
 Note: I find Starlette's middleware-based approach to auth much simpler than FastAPI's
-dependency injection approach. So far, I have found the approach to work well with
-either. In FastAPI, this approach requires passing the request to view functions via
-dependency injection, and decorating the view with Starlette's `requires` decorator. E.g.:
+dependency injection approach. So far, I have found the current approach to work well
+with both Starlette and FastAPI. In FastAPI, this approach requires passing the request
+to view functions via dependency injection, and decorating the view with Starlette's
+`requires` decorator. E.g.:
 
 ```
 @app.get("/tasks") # decorators must be in this order
@@ -50,16 +70,17 @@ async def get_tasks(request:Request):
 
 Scopes are then applied as follows:
 
- * Web views requiring authentication will require app_auth
- * API handlers require api_auth
+ * Web views requiring authentication will require `app_auth`
+ * API handlers require `api_auth`
 
 Finally, requests made via Javascript from the browser pass their cookie information.
-This allows the browser to programatically access the API.
+This allows the browser to programatically access the API on behalf of the authenticated
+user.
 
 
 ## Architectural notes
 
-Both applications will need access to the same database, particularly the ouath client
+Both applications will need access to the same database, particularly the oauth client
 and tokens tables. It is likely they will also both need access to users, or whatever
 your resource-owning model is.
 
@@ -74,12 +95,31 @@ client credentials via dbm.
 
 ## Programmatic Client
 
-A CLI called tasks.py is provided to demonstrate API access. Use the client ID and
-secret available in the /apps section of the UI for a user.
+A CLI called tasks.py is provided to demonstrate API access. Copy the client ID and
+secret available in the /apps section of the UI, and set the environment variables:
 
+ * CLIENT_ID
+ * CLIENT_SECRET
+ 
 
 ## Interactive Swagger docs
 
 The FastAPI Swagger UI is available at http://localhost:5000/docs. You will first
 need to authenticate in the web app (http://localhost:8000/login) in order to submit
 auth-required requests via Swagger.
+
+Note that I have not found a way to get Swagger to work with CSRF protection. For this
+reason, there is a csrf bypass that should be set for development purposes only. To
+enable this, set the environment variable: 
+
+```
+BYPASS_API_CSRF=1
+```
+
+
+## Configuration
+
+Configs, in general, are set in `src/common/configs` and use a pydantic settings class.
+Config properties are read from the environment. See the pydantic
+[settings management docs](https://pydantic-docs.helpmanual.io/usage/settings/)
+for more about how this works.
