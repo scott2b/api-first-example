@@ -9,6 +9,12 @@ The application itself is a super-simple "tasks" project, typical for framework
 demos and proofs of concept.
 
 
+## Python
+
+Probably requires Python >= 3.10 due to modern type annotations, but these could
+easily be replaced with 3.6+ style annotations.
+
+
 ## Quickstart
 
 ```
@@ -100,6 +106,8 @@ secret available in the /apps section of the UI, and set the environment variabl
 
  * CLIENT_ID
  * CLIENT_SECRET
+
+Type `python tasks.py --help` for usage.
  
 
 ## Interactive Swagger docs
