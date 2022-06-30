@@ -4,8 +4,8 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     BYPASS_API_CSRF: bool = False
-    CSRF_KEY: str = "supersecretcsrf"  # must be the same in the console and the api for csrf middleware to work
-    SECRET_KEY: str = "supersecretsecret"  # must be the same in the console and the api for sessions to work
+    CSRF_KEY: str  # must be the same in the console and the api for csrf middleware to work
+    SECRET_KEY: str  # must be the same in the console and the api for sessions to work
     SESSION_COOKIE: str = "session"
     SESSION_EXPIRE_SECONDS: int = 60 * 60 * 24 * 10
 
