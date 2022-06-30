@@ -11,7 +11,7 @@ from starlette.routing import Route, Mount
 from common.backends import SessionAuthBackend
 from common.config import settings
 from common.models import OAuth2Client
-from .forms import TokenForm, LoginForm
+from .forms import LoginForm
 from .templating import render
 from . import messages
 
@@ -49,6 +49,7 @@ def logout(request):
 
 @requires("app_auth")
 def app_clients(request):
+    # TODO: We might consider fetching the clients via API
     clients = OAuth2Client.get_for_user(request.user)
     return render("apps.html", { "clients": clients })
 

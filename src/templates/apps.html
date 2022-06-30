@@ -1,12 +1,26 @@
 {% extends "base.html" %}
 
 {% block content %}
-<p>Client ID and secret are used for programmatic access to the API.</p>
-TODO:
+<p>Client ID and secret are used for programmatic access to the API.
+
+<h4>TODO:</h4>
 <ul>
   <li>Enable creating and deleting of client credentials.</li>
   <li>Hide secrets. Consider hashing them in the database.</li>
 </ul>
+</p>
+
+<h3>Usage</h3>
+
+<p>The client credentials below can be used with the tasks.py client application by
+setting the following environment variables:
+
+<ul>
+  <li>CLIENT_ID</li>
+  <li>CLIENT_SECRET</li>
+</ul>
+</p>
+
 <h3>Application clients</h3>
 
 {% for client in clients %}

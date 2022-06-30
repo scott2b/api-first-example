@@ -1,15 +1,16 @@
 import datetime
 from asgi_csrf import asgi_csrf
-from fastapi import FastAPI, Body, HTTPException
-from pydantic import BaseModel
+from fastapi import Body, Depends, FastAPI, HTTPException
 from starlette.authentication import requires
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
-from common.backends import CSRFMiddleware, SessionAuthBackend
+from common.backends import SessionAuthBackend
 from common.config import settings
 from common.models import OAuth2Client, OAuth2Token, Task
+from .forms import OAuth2ClientTokenRequestForm, OAuth2ClientRefreshTokenRequestForm
+from .validation import Message, NewTask, UpdateTask, ReturnTask
 
 
 app = FastAPI(debug=True)
@@ -35,7 +36,12 @@ def bypass_csrf(scope):
     return settings.BYPASS_API_CSRF
     
 
-app.add_middleware(asgi_csrf, signing_secret=settings.CSRF_KEY, always_set_cookie=True, skip_if_scope=bypass_csrf)
+app.add_middleware(
+    asgi_csrf, # Thanks @simonw!
+    signing_secret=settings.CSRF_KEY,
+    always_set_cookie=True,
+    skip_if_scope=bypass_csrf
+)
 
 
 app.add_middleware(
@@ -52,14 +58,27 @@ app.add_middleware(
     https_only=False)
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def home():
-    return { "description": "api-first example application" }
+    return {
+        "description": "api-first example application",
+        "documentation": {
+            "swagger": "/docs",
+            "redoc": "/redoc"
+        }
+    }
 
 
-@app.get("/clients")
-@requires("api_auth")
+@app.get("/clients", include_in_schema=False)
+@requires("app_auth") # Note the app_auth scope on this one
 async def clients(request:Request):
+    """This is not currently used but is exposed for the sake of potentially fetching
+    the client credentials via ajax rather than in the console view code.
+
+    I find it questionable to expose these in the API via client credential/token
+    authentication, thus I have marked the required scope to be app_auth, and have
+    removed this from the docs.
+    """
     clients = OAuth2Client.get_for_user(request.user)
     return { clients: clients }
 
@@ -67,84 +86,33 @@ async def clients(request:Request):
 @app.get("/tasks")
 @requires("api_auth")
 async def get_tasks(request:Request):
+    """Get the list of tasks. Returns all tasks for the user associated with the
+    client credentials, or the currently authenticated user in the UI.
+    """
     tasks = Task.for_user(request.user)
     return { "tasks": tasks }
 
 
-# TODO: factor into a schema module
-
-class NewTask(BaseModel):
-    """Based on these docs: https://fastapi.tiangolo.com/tutorial/body-multiple-params/#singular-values-in-body
-    it is expected that we can simply define a description parameter that defaults to Body(),
-    however this does not seem to work, so we provide an input Task validator without an id.
-    """
-    description: str
-
-
-class UpdateTask(BaseModel):
-    id: str
-    description: str
-    done: bool
-
-
-class ReturnTask(BaseModel):
-
-    id: str
-    user: str
-    description: str
-    done: bool
-
-    @classmethod
-    def from_task(cls, task):
-        d = task.asdict()
-        d["user"] = d["user"]["username"]
-        return cls(**d)
-
-
-@app.post("/tasks")
+@app.post("/tasks", response_model=ReturnTask, status_code=201)
 @requires("api_auth")
 async def create_task(request:Request, task:NewTask):
-    print("CREATING TASK IN API")
+    """Create a new task."""
     task = Task.create(request.user, task.description)
-    return ReturnTask.from_task(task) # TODO: status 201
+    return ReturnTask.from_task(task)
 
 
-@app.put("/tasks/{task_id}")
+@app.put("/tasks/{task_id}",
+    response_model=ReturnTask,
+    responses={404: {"model": Message, "description": "The item was not found"}})
 @requires("api_auth")
 async def update_task(request:Request, task_id:str, task:UpdateTask):
+    """Update the given tasks. Only superusers may update other users' tasks."""
     orig = Task.table[task_id]
     if orig.user == request.user or request.user.superuser:
         Task.update(task)
-        return task
+        return ReturnTask.from_task(task)
     else:
         raise HTTPException(status_code=404)
-
-
-from fastapi import Form, Depends
-
-class OAuth2ClientTokenRequestForm:
-
-    def __init__(
-        self,
-        grant_type: str = Form(None, regex="client_credentials"),
-        client_id: str = Form(...),
-        client_secret: str = Form(...)
-    ):
-        self.grant_type = grant_type
-        self.scopes = ["api"]
-        self.client_id = client_id
-        self.client_secret = client_secret
-
-
-class OAuth2ClientRefreshTokenRequestForm:
-
-    def __init__(
-        self,
-        grant_type: str = Form(None, regex="refresh_token"),
-        refresh_token: str = Form(...)
-    ):
-        self.grant_type = grant_type
-        self.refresh_token = refresh_token
 
     
 @app.post("/token")

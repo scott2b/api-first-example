@@ -1,5 +1,7 @@
   {{ form.csrf_token }}
 
+        {{ form.csrftoken }}
+
         {{ form.username.label }}
         {{ form.username(class="css_class") }}
         {% if form.username.errors %}
